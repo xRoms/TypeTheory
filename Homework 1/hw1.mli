@@ -11,6 +11,7 @@ val power: peano -> peano -> peano
 
 val rev: 'a list -> 'a list
 val merge_sort: 'a list -> 'a list
+val print_list: int list -> unit
 
 type lambda = Var of string | Abs of string * lambda | App of lambda * lambda
 
