@@ -69,9 +69,6 @@ let rec reformat sys subst = match sys with
 
 let solve_system stm = 
 	let rec solving stm subst = 
-	(*List.iter (fun (x, y) -> print_string(x ^ " - " ^ (algebraic_term_to_string y) ^ "\n")) subst;
-	print_string "\n";
-	List.iter (fun (x, y) -> print_string((algebraic_term_to_string x) ^ " = " ^ (algebraic_term_to_string y) ^ "\n")) stm;
 	*)match stm with 
 		| [] -> (true, subst)
 		| (l, r)::tail -> (match (l, r) with

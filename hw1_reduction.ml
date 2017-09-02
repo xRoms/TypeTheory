@@ -146,20 +146,12 @@ let reduce_to_normal_form expr =
 			expr
 		end
 		else begin
-			(*print_string (string_of_lambda expr);
-			print_string "\n";*)	
 			match expr with
 			| Var s -> Var s
 			| App (x, y) -> (match x with
-							| Abs (a, b) -> (*print_string ("foundapp " ^ (string_of_lambda (abstract expr)) ^ "\n");
-*)
-											let expr = abstract expr in											
+							| Abs (a, b) -> let expr = abstract expr in											
 											let memostring = (string_of_lambda expr) in
-											if (MyMap.mem memostring !my_map) then begin
-												(*print_string memostring;
-												print_string "mapped \n";
-												print_string (MyMap.find memostring !my_map);
-												print_string "\n";*)								
+											if (MyMap.mem memostring !my_map) then begin					
 												reducing (lambda_of_string (MyMap.find memostring !my_map))
 											end
 											else

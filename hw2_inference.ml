@@ -13,8 +13,6 @@ let new_name() =
 	var_counter := !var_counter + 1;
 	("temp" ^ (string_of_int !var_counter));;
 
-(*let infer_simp_type = failwith "Not Implemented";;*)
-
 module MyMap = Map.Make(String);;
 module MySet = Set.Make(String);;
 
@@ -98,17 +96,11 @@ let algorithm_w hmlam =
 						print_string "Var";
 						(false, (MyMap.empty, HM_Elem "Var"))
 					end
-	| HM_App (x, y) -> (*MyMap.iter (fun a b -> print_string (a ^ " - " ^ (algebraic_term_to_string (hm_to_term (b)))^"\n")) type_map;
-							print_string "\n";*)
+	| HM_App (x, y) ->
 						let (b1, (s1, r1)) = algo x type_map in
 						let (b2, (s2, r2)) = algo y (substitute_types_map type_map s1) in
 						let b = (new_name()) in
 						let new_type = substitute r1 s2 in
-						(*print_string "subst r1 s2\n";
-						print_string(algebraic_term_to_string(hm_to_term new_type));
-						print_string "\nr2\n";
-						print_string(algebraic_term_to_string(hm_to_term (HM_Arrow (r2, HM_Elem b))));
-						print_string "\n";*)
 						let ans = solve_system ((hm_to_term new_type, hm_to_term(HM_Arrow (r2, HM_Elem b))) :: []) in
 						if (ans = None || b1 = false || b2 = false) then begin 
 							print_string "App\n";
@@ -140,12 +132,6 @@ let algorithm_w hmlam =
 							else
 
 								let new_type_map = substitute_types_map type_map s1 in
-								(*print_string "let map\n";
-								MyMap.iter (fun a b -> print_string (a ^ " - " ^ (algebraic_term_to_string (hm_to_term (b)))^"\n")) new_type_map;
-								print_string(algebraic_term_to_string(hm_to_term r1));
-								print_string "\n";
-								MySet.iter (fun a -> print_string a) (free_types r1);
-								print_string "\n";*)
 								let (b2, (s2, r2)) = algo e2 (MyMap.add x (locking new_type_map r1) (MyMap.remove x new_type_map)) in 
 								
 								if (b2 = false) then begin 
@@ -166,7 +152,7 @@ let rec bind_free_types (lam : lambda) =
 	| App (x, y) -> MySet.union (get_free_vars x) (get_free_vars y)
 	| Abs (s, x) -> MySet.remove s (get_free_vars x) in 
 	MySet.fold (fun a map -> MyMap.add a (S_Elem (new_name())) map) (get_free_vars lam) MyMap.empty;;
-(*ne proveren*)
+	
 let rec infer_simp_type lam = 
 	let rec get_system (lam : lambda) type_map = match lam with
 	| Var x -> ([], MyMap.find x type_map)
