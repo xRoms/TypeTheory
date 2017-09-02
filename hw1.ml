@@ -1,5 +1,5 @@
-type peano = Z | S of peano;;
-type lambda = Var of string | Abs of string * lambda | App of lambda * lambda;;
+type peano = Z | S of peano
+type lambda = Var of string | Abs of string * lambda | App of lambda * lambda
 
 let rec peano_of_int x = match x with
 	0 -> Z
@@ -73,6 +73,11 @@ let rec string_of_lambda l = match l with
 |   Abs (x, y) -> "(%" ^ x ^ "." ^ string_of_lambda y ^ ")"
 |   App (x, y) -> "(" ^ string_of_lambda x ^ " " ^ string_of_lambda y ^ ")";;
 
+let rec string_of_lambda_cool l = match l with
+|	Var x -> ("Var " ^ x ^ " ")
+|   Abs (x, y) -> "Abs (" ^ x ^ ", " ^ string_of_lambda_cool y ^ ")"
+|   App (x, y) -> "App (" ^ string_of_lambda_cool x ^ ", " ^ string_of_lambda_cool y ^ ")";;
+
 let dot s = 
 	let rec dot s ind =
 		if (String.get s ind = '.') then
@@ -82,30 +87,38 @@ let dot s =
 	in
 	dot s 0;;
 
-let space s = 
-	let rec space s ind bal = 
-		if (ind >= String.length s) then
-			-1
-		else 
-			match String.get s ind with
-			| ' ' ->  if (bal != 0) then
-						space s (ind + 1) bal
-					  else
-					  	ind
-			| '(' -> space s (ind + 1) (bal + 1)
-			| ')' -> space s (ind + 1) (bal - 1)
-			| _ -> space s (ind + 1) bal
-	in
-	space s 0 0;;
+let lastopeningbracket s =
+	let rec lob s pos bal ans = 
+		if (pos >= String.length s) then
+			ans
+		else
+			match String.get s pos with
+			| '(' -> if (bal = 0) then
+						lob s (pos + 1) (bal + 1) pos
+					else 
+						lob s (pos + 1) (bal + 1) ans
+			| ')' -> lob s (pos + 1) (bal - 1) ans
+			| ' ' -> if (bal = 0) then
+						lob s (pos + 1) bal pos
+					else
+						lob s (pos + 1) bal ans 
+			| _ -> lob s (pos + 1) bal ans in
+	lob s 0 0 (-1);;
+
 
 
 
 let rec lambda_of_string s =
+	let s = String.trim s in
 	match String.get s 0 with
 	| '%' -> Abs ((String.sub s 1 ((dot s) - 1)), lambda_of_string (String.sub s ((dot s) + 1) (String.length s - (dot s) - 1)))
-	| _ -> match space s with
-		| -1 -> if (String.get s 0 = '(') then
-			lambda_of_string (String.sub s 1 (String.length s - 2))
-		else
-			Var s
-		| x -> App (lambda_of_string (String.sub s 0 (space s)), lambda_of_string (String.sub s ((space s) + 1) (String.length s - (space s) - 1)));;
+	| '(' -> let lb = lastopeningbracket s in
+			 if (lb = 0) then
+			 	lambda_of_string(String.sub s 1 (String.length s - 2))
+			 else
+			 	App (lambda_of_string (String.sub s 0 lb) , lambda_of_string (String.sub s (lb) (String.length s - lb)))
+	| x -> let lb = lastopeningbracket s in
+			if (lb = -1) then
+				Var s
+			else
+			 	App (lambda_of_string (String.sub s 0 lb) , lambda_of_string (String.sub s (lb) (String.length s - lb)))
