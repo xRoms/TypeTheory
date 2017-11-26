@@ -69,7 +69,7 @@ let rec reformat sys subst = match sys with
 
 let solve_system stm = 
 	let rec solving stm subst = 
-	*)match stm with 
+	match stm with 
 		| [] -> (true, subst)
 		| (l, r)::tail -> (match (l, r) with
 							| (Var x, smth) -> 	if (smth = Var x) then

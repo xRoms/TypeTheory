@@ -87,7 +87,7 @@ print_string ((string_of_bool check_subt) ^ "\n");;
 let ans_sym0 = solve_system sym0;;
 print_ans ans_sym0;
 check_ans ans_sym0 sym0;;
-(*
+
 let ans_sym1 = solve_system sym1;;
 print_ans ans_sym1;
 check_ans ans_sym1 sym1;;
@@ -102,4 +102,4 @@ check_ans ans_sym3 sym3;;
 
 let ans_sym4 = solve_system sym4 in
 print_ans ans_sym4;
-check_ans ans_sym4 sym4;;*)
+check_ans ans_sym4 sym4;;

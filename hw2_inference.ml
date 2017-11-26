@@ -38,6 +38,16 @@ let rec term_to_hm term = match term with
 | Fun (s, x::y::[]) -> HM_Arrow (term_to_hm x, term_to_hm y)
 | _ -> failwith "went wrong";;
 
+let rec simp_type_to_term t = 
+	match t with
+	| S_Elem(a) -> Hw2_unify.Var(a)
+	| S_Arrow(a, b) -> Hw2_unify.Fun("->", [(simp_type_to_term a);(simp_type_to_term b)]);;
+
+let rec term_to_simp_type t =
+    match t with
+	| Hw2_unify.Var(v) -> S_Elem(v)
+	| Hw2_unify.Fun(name, [l;r]) -> S_Arrow(term_to_simp_type l, term_to_simp_type r)
+| _ -> failwith "went wrong";;
 
 let list_to_map lis = 
 	let rec mapper lis map =
@@ -80,6 +90,31 @@ let rec algebraic_term_to_string (at : algebraic_term) =
         | (h::t) -> (impl h) ^ " " ^ (impl_for_list t)
     in
     impl at;;
+
+
+
+let rec bind_free_types (lam : lambda) = 
+	let rec get_free_vars (lam : lambda) = match lam with
+	| Var x -> MySet.singleton x
+	| App (x, y) -> MySet.union (get_free_vars x) (get_free_vars y)
+	| Abs (s, x) -> MySet.remove s (get_free_vars x) in 
+	MySet.fold (fun a map -> MyMap.add a (S_Elem (new_name())) map) (get_free_vars lam) MyMap.empty;;
+	
+let rec get_system (lam : lambda) type_map = match lam with
+	| Var x -> ([], MyMap.find x type_map)
+	| App (p, r) -> let pi = new_name() in 
+					let (ep, rp) = get_system p type_map in 
+					let (er, rr) = get_system r type_map in 
+					((rp, S_Arrow(rr, S_Elem pi))::(List.append ep er), S_Elem pi)
+	| Abs (x, p) -> let rx = new_name() in 
+					let (ep, rp) = get_system p (MyMap.add x (S_Elem rx) type_map) in 
+					(ep, S_Arrow (S_Elem rx, rp));;
+
+let rec infer_simp_type (lam : lambda) = 
+	let stm, t = get_system lam (bind_free_types lam) in
+	match Hw2_unify.solve_system (List.map (fun (a, b) -> (simp_type_to_term a, simp_type_to_term b)) stm) with
+	| Some sltn -> Some (List.map (fun (a, b) -> (a, term_to_simp_type b)) solution, term_to_simp_type (Hw2_unify.apply_substitution solution (simp_type_to_term t)))
+	| None -> None;;	    
 
 let locking context hmtype = 
 	let context_types = MyMap.fold (fun a b set -> MySet.union (free_types b) set) context MySet.empty in 
@@ -145,25 +180,9 @@ let algorithm_w hmlam =
 		Some (MyMap.fold (fun a b lis -> (a, b)::lis) s [], r)
 	else 
 		None;;
-
-let rec bind_free_types (lam : lambda) = 
-	let rec get_free_vars (lam : lambda) = match lam with
-	| Var x -> MySet.singleton x
-	| App (x, y) -> MySet.union (get_free_vars x) (get_free_vars y)
-	| Abs (s, x) -> MySet.remove s (get_free_vars x) in 
-	MySet.fold (fun a map -> MyMap.add a (S_Elem (new_name())) map) (get_free_vars lam) MyMap.empty;;
 	
-let rec infer_simp_type lam = 
-	let rec get_system (lam : lambda) type_map = match lam with
-	| Var x -> ([], MyMap.find x type_map)
-	| App (p, r) -> let pi = new_name() in 
-					let (ep, rp) = get_system p type_map in 
-					let (er, rr) = get_system r type_map in 
-					((rp, S_Arrow(rr, S_Elem pi))::(List.append ep er), S_Elem pi)
-	| Abs (x, p) -> let rx = new_name() in 
-					let (ep, rp) = get_system p (MyMap.add x (S_Elem rx) type_map) in 
-					(ep, S_Arrow (S_Elem rx, rp)) in 
-	get_system lam (bind_free_types lam);;
+
+
 
 let test123 t = 
 	let ans1 = algorithm_w t in

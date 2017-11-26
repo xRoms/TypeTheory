@@ -1,6 +1,18 @@
 open Hw1
 
+type ilambda = | IVar of string 
+	           | IAbs of (string * ilambda ref)
+	           | IApp of (ilambda ref * ilambda ref);;
 
+
+
+module MyMap = Map.Make(String);;
+
+let var_counter = ref 0;;
+
+let new_name() = 
+	var_counter := !var_counter + 1;
+	("temp" ^ (string_of_int !var_counter));;
 
 let rec check_subst subst var = match subst with
 | Var v -> if (v = var) then
@@ -12,6 +24,31 @@ let rec check_subst subst var = match subst with
 					true
 				else
 					check_subst x var;;
+
+let rec ilambda_of_lambda expr = match expr with
+| Var(v) -> ref (IVar(v))
+| App(x, y) -> ref (IApp(ilambda_of_lambda x, ilambda_of_lambda y))
+| Abs(s, x) -> ref (IAbs(s, ilambda_of_lambda x));;
+
+let rec lambda_of_ilambda expr = match !expr with
+| IVar(v) -> Var(v)
+| IApp(x, y) -> App(lambda_of_ilambda x, lambda_of_ilambda y)
+| IAbs(s, x) -> Abs(s, lambda_of_ilambda x);;
+
+let rec subst_imp_lmd n m l = match !m with
+| IVar(v) -> if v = l then 
+					m := !n
+| IApp(x, y) -> subst_imp_lmd n x l; 
+					subst_imp_lmd n y l
+| IAbs(s, x) -> if (s <> l) then 
+    					subst_imp_lmd n x l;;
+
+let rec to_temp expr map = 	
+match expr with
+| Var(v) -> if MyMap.mem v map then Var(MyMap.find v map) else expr
+| App(x, y) -> App(to_temp x map, to_temp y map)
+| Abs(s, x) -> let nv = new_name() in
+				 Abs(nv, to_temp x (MyMap.add s nv map));;	
 
 let rec find_var_in_exp expr subst var s = match expr with
 | Var v -> if (v = var) then 
@@ -99,10 +136,6 @@ let rec reduct_exists expra = match expra with
 				| _ -> reduct_exists x || reduct_exists y)
 | Abs (x, y) -> reduct_exists y;;
 
-module MyMap = Map.Make(String);;
-
-
-
 
 
 let abstract expr = 
@@ -139,36 +172,30 @@ let print_keys k e =
 
 let my_map = ref MyMap.empty;;
 
-let reduce_to_normal_form expr =
-	my_map := MyMap.empty;
-	let rec reducing expr  =
-		if (is_normal_form expr) then begin
-			expr
-		end
-		else begin
-			match expr with
-			| Var s -> Var s
-			| App (x, y) -> (match x with
-							| Abs (a, b) -> let expr = abstract expr in											
-											let memostring = (string_of_lambda expr) in
-											if (MyMap.mem memostring !my_map) then begin					
-												reducing (lambda_of_string (MyMap.find memostring !my_map))
-											end
-											else
-												let subresult = substitute b y a  in
-												let resultstring = string_of_lambda subresult in
-												my_map := MyMap.add memostring resultstring !my_map;
-												reducing subresult 
-							| _ -> if (reduct_exists x) then
-										let left = reducing x in
-										reducing (App (left, y))
-									else 
-										let right = reducing y  in
-										reducing (App (x, right)))
-									
-			| Abs (x, y) -> let right = reducing y in
-							Abs (x, right) end in
-	reducing (abstract expr);;
+let rec reduce_to_normal_form expr = 
+	let iexpr = ilambda_of_lambda (to_temp expr MyMap.empty) in
+	let rec impl iexpr = match !iexpr with
+	  | IVar(v) -> None
+	  | IApp(x, y) ->
+		(match !x with					
+		| IAbs(a, b) -> let nv = new_name() in
+						    iexpr := !(ilambda_of_lambda(to_temp (lambda_of_ilambda b) (MyMap.singleton a nv)));
+							subst_imp_lmd y iexpr nv;
+							Some iexpr
+		| _ -> match impl x with
+			    | Some smth -> Some iexpr
+				| None -> match impl y with
+								| Some smth -> Some iexpr
+								| None -> None)				
+	  | IAbs(a, b) -> match impl b with
+						        | Some smth -> Some iexpr
+						        | None -> None					
+	in 
+	let rec ret_impl iexpr = match impl iexpr with
+	  | Some smth -> ret_impl smth
+	  |	None -> iexpr
+	in
+	lambda_of_ilambda (ret_impl iexpr);;
 
 
 
