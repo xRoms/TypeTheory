@@ -112,8 +112,8 @@ let rec get_system (lam : lambda) type_map = match lam with
 
 let rec infer_simp_type (lam : lambda) = 
 	let stm, t = get_system lam (bind_free_types lam) in
-	match Hw2_unify.solve_system (List.map (fun (a, b) -> (simp_type_to_term a, simp_type_to_term b)) stm) with
-	| Some sltn -> Some (List.map (fun (a, b) -> (a, term_to_simp_type b)) solution, term_to_simp_type (Hw2_unify.apply_substitution solution (simp_type_to_term t)))
+	match solve_system (List.map (fun (a, b) -> (simp_type_to_term a, simp_type_to_term b)) stm) with
+	| Some sltn -> Some (List.map (fun (a, b) -> (a, term_to_simp_type b)) sltn, term_to_simp_type (Hw2_unify.apply_substitution sltn (simp_type_to_term t)))
 	| None -> None;;	    
 
 let locking context hmtype = 
